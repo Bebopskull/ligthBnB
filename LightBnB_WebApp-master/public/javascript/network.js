@@ -28,6 +28,16 @@ function signUp(data) {
   });
 }
 
+const getAllProperties = function(options, limit = 10) {
+  pool.query(`
+  SELECT * FROM properties
+  LIMIT $1
+  `, [limit])
+  .then(res => {
+    console.log(res.rows)
+  });
+}
+
 function getAllListings(params) {
   let url = "/api/properties";
   if (params) {
