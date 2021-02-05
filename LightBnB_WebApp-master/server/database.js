@@ -140,30 +140,31 @@ const getAllProperties = function(options, limit = 10) {
   let queryString = `
   SELECT properties.*, avg(property_reviews.rating) as average_rating
   FROM properties
-  JOIN property_reviews ON properties.id = property_id
-  `;
+  LEFT OUTER JOIN property_reviews ON properties.id = property_id
+  WHERE TRUE `;
 
-  // 3
-  if (options.city) {
-    queryParams.push(`%${options.city}%`);
-    queryString += `WHERE city LIKE $${queryParams.length} `;
-  }
+  // 
 
   ///IF owener ID is passed
   if (options.owner_id) {
     queryParams.push(`${options.owner_id}`);
     queryString += `AND owner_id = $${queryParams.length} `;
   }
-  
+
+  // 3
+  if (options.city) {
+    queryParams.push(`%${options.city}%`);
+    queryString += `AND city LIKE $${queryParams.length} `;
+  }
 
   ///range
   //min
-  if (options.minimum_price_per_night!==''){
+  if (options.minimum_price_per_night){
     queryParams.push(options.minimum_price_per_night * 100);
     queryString += `AND cost_per_night >= $${queryParams.length} `;
   }
   //max
-  if(options.maximum_price_per_night!==''){
+  if(options.maximum_price_per_night){
     queryParams.push(options.maximum_price_per_night * 100);
     queryString += `AND cost_per_night <= $${queryParams.length} `;
   };
@@ -183,11 +184,12 @@ const getAllProperties = function(options, limit = 10) {
   `;
 
   // 5
-  console.log(queryString, queryParams);
+  console.log('tring and params=',queryString, queryParams);
 
   // 6
   return pool.query(queryString, queryParams)
   .then(res => res.rows);
+  return res.rows[0]
 }
 
 exports.getAllProperties = getAllProperties;
@@ -200,10 +202,72 @@ exports.getAllProperties = getAllProperties;
  * @param {{}} property An object containing all of the property details.
  * @return {Promise<{}>} A promise to the property.
  */
+
+//  {
+//   owner_id: int,
+//   title: string,
+//   description: string,
+//   thumbnail_photo_url: string,
+//   cover_photo_url: string,
+//   cost_per_night: string,
+//   street: string,
+//   city: string,
+//   province: string,
+//   post_code: string,
+//   country: string,
+//   parking_spaces: int,
+//   number_of_bathrooms: int,
+//   number_of_bedrooms: int
+// }
+
 const addProperty = function(property) {
-  const propertyId = Object.keys(properties).length + 1;
-  property.id = propertyId;
-  properties[propertyId] = property;
-  return Promise.resolve(property);
+  
+  // console.log('property',property);
+
+  let queryString = `
+  INSERT INTO properties (
+    owner_id, 
+    title, 
+    description, 
+    thumbnail_photo_url,
+    cover_photo_url,
+    cost_per_night,
+    street,
+    city,
+    province,
+    post_code,
+    country,
+    parking_spaces,
+    number_of_bathrooms,
+    number_of_bedrooms)
+  values($1,$2, $3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+  RETURNING *;
+  `;
+  const queryParams = [
+    property.owner_id, 
+    property.title, 
+    property.description, 
+    property.thumbnail_photo_url,
+    property.cover_photo_url,
+    property.cost_per_night,
+    property.street,
+    property.city,
+    property.province,
+    property.post_code,
+    property.country,
+    property.parking_spaces,
+    property.number_of_bathrooms,
+    property.number_of_bedrooms
+  ];
+
+  return pool.query(queryString, queryParams)
+  .then(res => {
+    console.log(res.rows)
+    return res.rows
+  })
+  .catch(err =>{
+    console.log('getUserWithId Error',err)
+    return null;
+  });
 }
 exports.addProperty = addProperty;
